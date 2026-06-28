@@ -1,0 +1,49 @@
+apiVersion: deploy.cloud.google.com/v1
+kind: DeliveryPipeline
+metadata:
+  name: emp-portal-pipeline
+description: employee portal project pipelibe 
+serialPipeline: 
+  stages:
+  - targetId: staging-env
+    profiles: [staging-profile]  
+
+  - targetId: production-env
+    profiles: [production-profile]  
+
+---
+
+apiVersion: deploy.cloud.google.com/v1
+kind: Target
+metadata:
+  name: staging-env
+description: Cloud run staging service
+run:
+  location: projects/gcp-cicd-demo-123456/locations/us-central1
+
+---
+
+apiVersion: deploy.cloud.google.com/v1
+kind: Target
+metadata:
+  name: production-env
+description: Cloud run production service
+run:
+  location: projects/gcp-cicd-demo-123456/locations/us-central1
+
+---
+
+apiVersion: deploy.cloud.google.com/v1
+kind: Automation
+metadata:
+  name: emp-portal-pipeline/promote
+  description: Promotes a release to the next target
+serviceAccount: 123456789-compute@developer.gserviceaccount.com
+selector:
+  targets: 
+    - id: staging-env
+rules:
+  - promoteReleaseRule:
+      name: "promote-release"
+      wait: 1m
+      destinationTargetId: production-env    

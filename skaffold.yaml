@@ -1,0 +1,17 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: emp-portal
+profiles:
+- name: staging-profile
+  manifests:
+    rawYaml:
+    - ./deploy/deploy-staging.yaml  
+
+- name: production-profile
+  manifests:
+    rawYaml:
+    - ./deploy/deploy-production.yaml      
+
+deploy:
+  cloudrun: {}    

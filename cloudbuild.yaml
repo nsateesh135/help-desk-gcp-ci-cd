@@ -1,0 +1,123 @@
+steps:
+  - name: "python"
+    id: "lint_test"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        pip install flake8-html \
+        && flake8 --format=html --htmldir=flake_reports/ || lint_status=$?
+        echo "$${lint_status:-0}" > lint_exit_code.txt
+        echo "lint test exited with code $${lint_status:-0}"
+    allowFailure: true    
+  
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: "upload-lint-artifacts"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        lint_status=$(cat lint_exit_code.txt)
+        if [ "$lint_status" -ne 0 ]; then
+          echo "Lint failed (code: $lint_status). Uploading artifacts..."
+          gsutil cp -r flake_reports/* gs://emp-portal-artifact/
+          echo "Exiting with error..."
+          exit 1
+        else
+          echo "Lint succeeded."
+        fi
+    waitFor: ["lint_test"]
+
+  - name: "python"
+    id: "pytest"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        pip install pytest-html \
+        && pip install -r requirements.txt --user \
+        && pytest --html=pytest_reports/pytest-report.html --self-contained-html || pytest_status=$?
+        echo "$${pytest_status:-0}" > pytest_exit_code.txt
+        echo "pytest exited with code $${pytest_status:-0}"   
+    allowFailure: true
+    waitFor: ["-"]
+
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: "upload-pytest-artifacts"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        pytest_status=$(cat pytest_exit_code.txt)
+        if [ "$pytest_status" -ne 0 ]; then
+          echo "Pytest failed (code: $pytest_status). Uploading artifacts..."
+          gsutil cp -r pytest_reports/* gs://emp-portal-artifact/
+          echo "Exiting with error..."
+          exit 1
+        else
+          echo "Pytest succeeded."
+        fi
+    waitFor: ["pytest"]   
+
+  - name: "gcr.io/cloud-builders/docker"  
+    id: "build"
+    args: ['build', '-t', '${_IMAGE_PATH}', '.' ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push"
+    args: ['push', '${_IMAGE_PATH}']
+    waitFor: ["build"]  
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "deploy_feature"
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if [[ "$BRANCH_NAME" =~ ^feature-.*$ ]]
+        then
+          gcloud run deploy "${BRANCH_NAME}" --image  "${_IMAGE_PATH}" --region "${_DEPLOY_REGION}" --allow-unauthenticated
+        fi
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "test_feature"
+    entrypoint: bash
+    args:
+      - -c
+      - | 
+        if [[ "$BRANCH_NAME" =~ ^feature-.*$ ]]
+        then
+          gcloud run services describe "${BRANCH_NAME}" --region "${_DEPLOY_REGION}" --format='value(status.url)' | xargs -I {} curl -s "{}" | grep "Support Tickets" && echo "Test passed" || (echo "Test failed" && exit 1)
+        fi
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "register_pipeline"
+    
+    entrypoint: bash
+    args:
+      - -c
+      - | 
+        if [[ "$BRANCH_NAME" == "main" ]]
+        then
+          gcloud deploy apply --file=./deploy/clouddeploy.yaml --region=$_DEPLOY_REGION --project=$PROJECT_ID
+        fi  
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'create_release'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [[ "$BRANCH_NAME" == "main" ]]
+        then
+          gcloud deploy releases create emp-portal-$SHORT_SHA --delivery-pipeline emp-portal-pipeline --region $_DEPLOY_REGION --images app-image="$_IMAGE_PATH"
+        fi
+
+substitutions:
+  _LOCATION: asia-south1-docker.pkg.dev
+  _IMAGE: emp-portal-repo/emp-portal-image
+  _IMAGE_PATH: ${_LOCATION}/${PROJECT_ID}/${_IMAGE}:${BRANCH_NAME}  
+  _DEPLOY_REGION: us-central1
+
+options:
+  dynamicSubstitutions: true    

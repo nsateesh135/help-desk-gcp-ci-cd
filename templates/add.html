@@ -1,0 +1,58 @@
+{% extends 'template.html' %}
+
+{% block head %}
+<title>New Ticket</title>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+
+    <div class="banner">
+        <h1>Support Tickets</h1>
+    </div>
+    <div class="form-holder">
+        <form action="/add" method="POST">
+            <h3>Submit a new ticket</h3>
+            <hr>
+            &nbsp;
+            <div class="row">
+                <label for="title">Title <span class="red">*</span></label>
+                <input id="title" type="text" name="title" required />
+            </div>
+            <div class="row">
+                <label for="description">Description <span class="red">*</span></label>
+                <input id="description" type="text" name="description" required />
+            </div>
+            <div class="row">
+                <label for="category">Category <span class="red">*</span></label>
+                <select id="category" name="category" required>
+                    <option value="">-- Select --</option>
+                    <option value="Bug">Bug</option>
+                    <option value="Feature Request">Feature Request</option>
+                    <option value="Access">Access</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="priority">Priority <span class="red">*</span></label>
+                <select id="priority" name="priority" required>
+                    <option value="">-- Select --</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="assignee">Assignee <span class="red">*</span></label>
+                <input id="assignee" type="text" name="assignee" required />
+            </div>
+            <div class="btn-block">
+                <a href="/" class="back-btn">Back to home</a>
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

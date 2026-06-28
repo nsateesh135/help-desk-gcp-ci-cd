@@ -1,0 +1,15 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata: 
+  name: staging-app
+spec:
+  template:
+    spec:
+      containers: 
+      - image: app-image  
+        ports:
+        - containerPort: 80
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 512Mi  
