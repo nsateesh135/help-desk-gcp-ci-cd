@@ -82,13 +82,20 @@ A lightweight internal help desk ticketing system built with Python/Flask, conta
 git clone <repo-url>
 cd helpdesk-portal
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 2. Create a virtual environment 
+uv venv --python 3.8
 
-# 3. Create the database
+# 3. Install dependencies
+uv pip install -r requirements.txt
+
+# 4. Activate Virtual Environment
+
+source .venv/bin/activate
+
+# 5. Create the database
 python create_db.py
 
-# 4. Run the application
+# 6. Run the application
 python app.py
 ```
 
@@ -98,7 +105,7 @@ The app will start at `http://localhost:8080`.
 
 ```bash
 # Install test dependencies
-pip install pytest pytest-html flake8 flake8-html
+uv pip install pytest pytest-html flake8 flake8-html
 
 # Lint check
 flake8 --format=html --htmldir=flake_reports/
