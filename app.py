@@ -15,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 
 
 db = models.db
+# Initialize SQLAlchemy with the app
 db.init_app(app)
 db.app = app
 
