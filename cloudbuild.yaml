@@ -13,6 +13,8 @@ steps:
         # $? : special variable in Bash that stores the exit status (return code) of the most recently executed command
         # Every command in Linux/Bash returns an integer between 0 and 255 when it finishes. 0: Success (no errors). ; 1 or higher : Failure (an error occurred)
         pip install flake8-html \
+
+        # && logical operator in bash which ensure pip install flake8-html is run before the command after
         && flake8 --format=html --htmldir=flake_reports/ || lint_status=$?
 
         # Write the exit status to 'lint_exit_code.txt'.
