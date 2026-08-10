@@ -1,32 +1,49 @@
+# Define the list of build steps to execute sequentially in Cloud Build
 steps:
-  - name: "python"
-    id: "lint_test"
-    entrypoint: "bash"
+  # STEP 1: Run the linter and record its result without failing the build step
+  - name: "python" # Use the official Python Docker image as the environment
+    id: "lint_test" # Unique identifier for this build step
+    entrypoint: "bash" # Override the image's default command to execute a Bash shell
     args:
-      - "-c"
-      - |
+      - "-c" # Pass the following multi-line string as a command to Bash
+      - | # Block scalar indicator: allows multi-line Bash scripting
+        # Install the HTML formatter plugin for flake8 and run flake8 linter.
+        # Output reports to 'flake_reports/'. If flake8 fails (non-zero exit code),
+        # the '||' operator catches the error and saves $? (exit code) into lint_status.
+        # $? : special variable in Bash that stores the exit status (return code) of the most recently executed command
+        # Every command in Linux/Bash returns an integer between 0 and 255 when it finishes. 0: Success (no errors). ; 1 or higher : Failure (an error occurred)
         pip install flake8-html \
         && flake8 --format=html --htmldir=flake_reports/ || lint_status=$?
+
+        # Write the exit status to 'lint_exit_code.txt'.
+        # $${...} escapes $ for Cloud Build so Bash evaluates it
+        # ${lint_status:-0} outputs the value of lint_status, or defaults to 0 if empty (success)
+        # We could have used $lint_status with no escaping needed, the above was just because we had to pass a default value of 0
         echo "$${lint_status:-0}" > lint_exit_code.txt
         echo "lint test exited with code $${lint_status:-0}"
-    allowFailure: true    
-  
-  - name: 'gcr.io/cloud-builders/gsutil'
-    id: "upload-lint-artifacts"
-    entrypoint: "bash"
+    allowFailure: true    # Instruct Cloud Build to proceed to step 2 even if this step encounters errors
+    
+  # STEP 2: Evaluate the linter result and conditionally upload reports to Google Cloud Storage
+  - name: 'gcr.io/cloud-builders/gsutil' # Use the official Google Cloud SDK image containing the gsutil tool
+    id: "upload-lint-artifacts" # Unique identifier for this step
+    entrypoint: "bash" # Override entrypoint to use Bash for conditional logic execution
     args:
       - "-c"
       - |
+        # Read the stored exit code from the file created in Step 1 into a Bash variable
         lint_status=$(cat lint_exit_code.txt)
+        # Check if lint_status is NOT equal to 0 (indicating linting errors occurred)
         if [ "$lint_status" -ne 0 ]; then
           echo "Lint failed (code: $lint_status). Uploading artifacts..."
+          # Recursively copy all generated HTML lint reports to the designated GCS bucket
           gsutil cp -r flake_reports/* gs://emp-portal-artifact/
           echo "Exiting with error..."
+          # Explicitly terminate this step with exit code 1 to intentionally fail the overall pipeline
           exit 1
         else
           echo "Lint succeeded."
-        fi
-    waitFor: ["lint_test"]
+        fi # End of the 'if' conditional block
+    waitFor: ["lint_test"] # Explicitly ensure this step executes only after 'lint_test' completes
 
   - name: "python"
     id: "pytest"
