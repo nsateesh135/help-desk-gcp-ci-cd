@@ -2,7 +2,7 @@ import os.path
 from models import models
 from flask import Flask, request, render_template, redirect
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__) )
 DATABASE = os.path.join(BASE_DIR, "helpdesk.db")
 
 
