@@ -13,6 +13,19 @@ SQLALCHEMY_DATABASE_URI = os.environ.get(
 )
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 
+""" 
+db = models.db
+This line grabs an already-created SQLAlchemy instance (named db) from your models.py file and assigns it to a variable named db in your current file. It says: "Use the database object that was created inside models.py."
+
+db.init_app(app)
+This connects your database instance to your specific Flask web app (app). It tells SQLAlchemy about your database configurations (like SQLALCHEMY_DATABASE_URI) so it knows how and where to open database connections when the server handles requests
+
+db.app = app
+This forcibly binds your Flask app instance directly onto the db object. In older versions of Flask-SQLAlchemy (pre-v3.0), developers used this line so they wouldn't have to run code inside an application context (e.g., with app.app_context():)
+
+db.app = app is obsolete and bad practice: Modern Flask-SQLAlchemy handles app contexts differently. Explicitly setting db.app is deprecated and will throw warnings or errors in current versions of Flask.
+"""
+
 
 db = models.db
 # Initialize SQLAlchemy with the app
