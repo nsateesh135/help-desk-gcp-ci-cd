@@ -39,6 +39,12 @@ def index():
     return render_template("index.html", tickets=tickets)
 
 
+@app.route("/health")
+def health():
+    """Lightweight liveness check for Cloud Run / load balancers."""
+    return {"status": "ok"}, 200
+
+
 @app.route("/add", methods=["POST", "GET"])
 def add():
     if request.method == "POST":
